@@ -212,4 +212,16 @@ class TransactionController extends Controller
             return null;
         }
     }
+
+    // ── INVOICE (print) ────────────────────────────────────────
+    public function invoice(Transaction $transaction)
+    {
+        if ($transaction->customer_id !== Auth::guard('customer')->id()) {
+            abort(403);
+        }
+
+        $transaction->load(['items', 'customer', 'discount']);
+        $settings = \App\Models\Setting::allFlat();
+        return view('admin.transactions.invoice', compact('transaction', 'settings'));
+    }
 }

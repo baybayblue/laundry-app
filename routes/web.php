@@ -64,6 +64,7 @@ Route::middleware('auth')->group(function () {
         Route::get('transactions/{transaction}/check-payment', [\App\Http\Controllers\Admin\TransactionController::class, 'checkPaymentStatus'])->name('transactions.check-payment');
         Route::get('transactions/{transaction}/snap-token', [\App\Http\Controllers\Admin\TransactionController::class, 'getSnapToken'])->name('transactions.snap-token');
         Route::post('transactions/{transaction}/approve-cancel', [\App\Http\Controllers\Admin\TransactionController::class, 'approveCancel'])->name('transactions.approve-cancel');
+        Route::post('transactions/{transaction}/reject-delete', [\App\Http\Controllers\Admin\TransactionController::class, 'rejectDelete'])->name('transactions.reject-delete');
         Route::get('transactions-export', [\App\Http\Controllers\Admin\TransactionController::class, 'export'])->name('transactions.export');
 
         // Laporan Keuangan
@@ -77,17 +78,32 @@ Route::middleware('auth')->group(function () {
         Route::get('attendances/clock', [\App\Http\Controllers\Admin\AttendanceController::class, 'clockPage'])->name('attendances.clock');
         Route::post('attendances/clock-in', [\App\Http\Controllers\Admin\AttendanceController::class, 'clockIn'])->name('attendances.clock-in');
         Route::post('attendances/clock-out', [\App\Http\Controllers\Admin\AttendanceController::class, 'clockOut'])->name('attendances.clock-out');
+
+        // Leave Requests Management
+        Route::get('leave-requests', [\App\Http\Controllers\Admin\LeaveRequestController::class, 'index'])->name('leave-requests.index');
+        Route::post('leave-requests/{leaveRequest}/approve', [\App\Http\Controllers\Admin\LeaveRequestController::class, 'approve'])->name('leave-requests.approve');
+        Route::post('leave-requests/{leaveRequest}/reject', [\App\Http\Controllers\Admin\LeaveRequestController::class, 'reject'])->name('leave-requests.reject');
     });
 
     // Employee routes
     Route::middleware('role:employee')->prefix('employee')->name('employee.')->group(function () {
         Route::get('dashboard', [\App\Http\Controllers\Employee\DashboardController::class, 'index'])->name('dashboard');
+        Route::resource('customers', \App\Http\Controllers\Employee\CustomerController::class);
         Route::resource('transactions', \App\Http\Controllers\Employee\TransactionController::class)->only(['index', 'create', 'store', 'show']);
+        Route::get('transactions/{transaction}/check-payment', [\App\Http\Controllers\Admin\TransactionController::class, 'checkPaymentStatus'])->name('transactions.check-payment');
+        Route::get('transactions/{transaction}/snap-token', [\App\Http\Controllers\Admin\TransactionController::class, 'getSnapToken'])->name('transactions.snap-token');
+        Route::post('transactions/{transaction}/update-status', [\App\Http\Controllers\Employee\TransactionController::class, 'updateStatus'])->name('transactions.update-status');
+        Route::post('transactions/{transaction}/request-delete', [\App\Http\Controllers\Employee\TransactionController::class, 'requestDelete'])->name('transactions.request-delete');
         Route::get('transactions-search-customers', [\App\Http\Controllers\Employee\TransactionController::class, 'searchCustomers'])->name('transactions.search-customers');
         Route::get('transactions-check-discount', [\App\Http\Controllers\Employee\TransactionController::class, 'checkDiscount'])->name('transactions.check-discount');
-        Route::get('attendances/clock', [\App\Http\Controllers\Admin\AttendanceController::class, 'clockPage'])->name('attendances.clock');
-        Route::post('attendances/clock-in', [\App\Http\Controllers\Admin\AttendanceController::class, 'clockIn'])->name('attendances.clock-in');
-        Route::post('attendances/clock-out', [\App\Http\Controllers\Admin\AttendanceController::class, 'clockOut'])->name('attendances.clock-out');
+
+        // Attendance (Fixed access)
+        Route::get('attendances/clock', [\App\Http\Controllers\Employee\AttendanceController::class, 'clockPage'])->name('attendances.clock');
+        Route::post('attendances/clock-in', [\App\Http\Controllers\Employee\AttendanceController::class, 'clockIn'])->name('attendances.clock-in');
+        Route::post('attendances/clock-out', [\App\Http\Controllers\Employee\AttendanceController::class, 'clockOut'])->name('attendances.clock-out');
+
+        // Leave Requests
+        Route::resource('leave-requests', \App\Http\Controllers\Employee\LeaveRequestController::class)->only(['index', 'store', 'destroy']);
     });
 });
 
@@ -107,6 +123,7 @@ Route::prefix('customer')->name('customer.')->group(function () {
         Route::get('/transactions/{transaction}', [\App\Http\Controllers\Customer\TransactionController::class, 'show'])->name('transactions.show');
         Route::get('/transactions/{transaction}/check-payment', [\App\Http\Controllers\Customer\TransactionController::class, 'checkPaymentStatus'])->name('transactions.check-payment');
         Route::get('/transactions/{transaction}/snap-token', [\App\Http\Controllers\Customer\TransactionController::class, 'getSnapToken'])->name('transactions.snap-token');
+        Route::get('/transactions/{transaction}/invoice', [\App\Http\Controllers\Customer\TransactionController::class, 'invoice'])->name('transactions.invoice');
         Route::post('/transactions/{transaction}/request-cancel', [\App\Http\Controllers\Customer\TransactionController::class, 'requestCancel'])->name('transactions.request-cancel');
 
         Route::get('/orders/create', [\App\Http\Controllers\Customer\OrderController::class, 'create'])->name('orders.create');

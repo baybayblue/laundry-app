@@ -25,7 +25,7 @@
                 <i class="ti ti-refresh me-1"></i> Cek Pembayaran
             </button>
         @endif
-        <a href="{{ route('admin.transactions.invoice', $transaction) }}" target="_blank" class="btn btn-primary rounded-pill shadow-sm px-4 fw-bold small">
+        <a href="{{ route('customer.transactions.invoice', $transaction) }}" target="_blank" class="btn btn-primary rounded-pill shadow-sm px-4 fw-bold small">
             <i class="ti ti-printer me-2 fs-5"></i> Cetak Invoice
         </a>
     </div>
@@ -180,11 +180,11 @@
         <div class="card border-0 shadow-sm rounded-4 border-start border-danger border-4 mb-4">
             <div class="card-body p-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
                 <div>
-                    <h6 class="fw-bold text-dark mb-1">Batalkan Pesanan?</h6>
-                    <p class="text-muted small mb-0">Pembatalan memerlukan persetujuan admin jika barang sudah diproses.</p>
+                    <h6 class="fw-bold text-dark mb-1">Hapus atau Batalkan Pesanan?</h6>
+                    <p class="text-muted small mb-0">Jika Anda salah input atau ingin membatalkan, silakan ajukan di sini. Persetujuan admin diperlukan.</p>
                 </div>
                 <button class="btn btn-outline-danger btn-sm rounded-pill px-4 fw-bold" id="btnRequestCancel" data-url="{{ route('customer.transactions.request-cancel', $transaction) }}">
-                    <i class="ti ti-x me-1"></i> Ajukan Pembatalan
+                    <i class="ti ti-trash me-1"></i> Ajukan Hapus / Batal
                 </button>
             </div>
         </div>
@@ -271,6 +271,14 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Auto-trigger Snap if redirected from creation
+        @if(session('trigger_snap'))
+            const autoSnapBtn = document.getElementById('btnPayNow');
+            if (autoSnapBtn && !autoSnapBtn.disabled) {
+                setTimeout(() => autoSnapBtn.click(), 1000);
+            }
+        @endif
+
         const btnPayNow = document.getElementById('btnPayNow');
         if (btnPayNow) {
             btnPayNow.addEventListener('click', async function() {

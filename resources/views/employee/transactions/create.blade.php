@@ -192,18 +192,72 @@
             <div class="card-body px-4 pb-4 pt-0">
                 <hr class="mb-4 mt-0">
                 <div class="row g-3">
+                    {{-- ═══ VOUCHER PICKER (Shopee-style) ═══ --}}
                     <div class="col-12">
-                        <label class="form-label fw-medium small"><i class="ti ti-ticket me-1 text-primary"></i>Kode Voucher/Diskon</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-light border-end-0"><i class="ti ti-barcode text-muted fs-6"></i></span>
-                            <input type="text" class="form-control border-start-0 font-monospace text-uppercase"
-                                id="discount_code" name="discount_code" placeholder="Ketik kode promo..." maxlength="50">
-                            <button type="button" class="btn btn-outline-primary btn-sm px-3 fw-medium" id="btnCheckDiscount">
-                                <i class="ti ti-check me-1"></i>Pakai
-                            </button>
+                        <label class="form-label fw-medium small mb-2">
+                            <i class="ti ti-ticket me-1 text-primary"></i>Voucher / Diskon
+                        </label>
+
+                        {{-- Trigger row --}}
+                        <div id="voucherPickerRow"
+                            class="d-flex align-items-center justify-content-between p-3 rounded-3 border"
+                            style="cursor:pointer; border-color:#e9ecef; transition:all .15s; background:#fff;"
+                            onclick="openVoucherModal()"
+                            onmouseover="this.style.borderColor='var(--bs-primary)'; this.style.background='#f8faff';"
+                            onmouseout="this.style.borderColor='#e9ecef'; this.style.background='#fff';">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"
+                                    style="width:38px;height:38px;background:linear-gradient(135deg,#2563eb,#3b82f6);">
+                                    <i class="ti ti-ticket text-white fs-5"></i>
+                                </div>
+                                <div id="voucherPickerText">
+                                    <div class="fw-medium text-muted small" id="voucherPickerLabel">Pilih atau gunakan voucher promo</div>
+                                    <div class="text-muted" style="font-size:.72rem;" id="voucherPickerSub">
+                                        @if($discounts->count()) {{ $discounts->count() }} voucher tersedia @else Tidak ada voucher aktif @endif
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span id="voucherSelectedBadge" class="badge rounded-pill d-none"
+                                    style="background:#2563eb20;color:#2563eb;border:1px solid #2563eb40;">Terpasang</span>
+                                <i class="ti ti-chevron-right text-muted"></i>
+                            </div>
                         </div>
-                        <div id="discountMsg" class="mt-1" style="font-size:.75rem;"></div>
+
+                        {{-- Applied voucher display --}}
+                        <div id="voucherApplied" class="d-none mt-2">
+                            <div class="d-flex align-items-center justify-content-between p-3 rounded-3"
+                                style="background:linear-gradient(135deg,#2563eb08,#3b82f608);border:1.5px dashed #2563eb60;">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="ti ti-circle-check text-success fs-5"></i>
+                                    <div>
+                                        <div class="fw-semibold small" id="voucherAppliedName">–</div>
+                                        <div class="text-success fw-bold" style="font-size:.8rem;" id="voucherAppliedSaving">Hemat –</div>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-sm text-muted border-0" onclick="removeVoucher()" title="Hapus voucher">
+                                    <i class="ti ti-x"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        {{-- Manual code fallback (hidden or small) --}}
+                        <div class="mt-2">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <hr class="flex-fill m-0"><span class="text-muted px-2" style="font-size:.72rem;white-space:nowrap;">atau kode manual</span><hr class="flex-fill m-0">
+                            </div>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="ti ti-barcode text-muted fs-6"></i></span>
+                                <input type="text" class="form-control border-start-0 font-monospace text-uppercase"
+                                    id="discount_code" name="discount_code" placeholder="Ketik kode promo..." maxlength="50">
+                                <button type="button" class="btn btn-outline-primary btn-sm px-3 fw-medium" id="btnCheckDiscount">
+                                    <i class="ti ti-check me-1"></i>Pakai
+                                </button>
+                            </div>
+                            <div id="discountMsg" class="mt-1" style="font-size:.75rem;"></div>
+                        </div>
                     </div>
+                    {{-- ═══ end VOUCHER PICKER ═══ --}}
                     <div class="col-md-6">
                         <label class="form-label fw-medium small" for="pickup_date">Estimasi Antar / Jemput</label>
                         <div class="input-group">
@@ -325,12 +379,155 @@
 
 </form>
 
+{{-- ══════════════════════════════════════════════════════════════════
+     MODAL: VOUCHER PICKER (Shopee-style)
+══════════════════════════════════════════════════════════════════ --}}
+<div class="modal fade" id="voucherModal" tabindex="-1" aria-labelledby="voucherModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable" style="max-width:520px;">
+        <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
+
+            {{-- Modal Header --}}
+            <div class="modal-header border-0 pb-0" style="background:linear-gradient(135deg,#2563eb,#3b82f6);">
+                <div class="d-flex align-items-center gap-3 py-1">
+                    <div class="rounded-3 bg-white bg-opacity-20 p-2">
+                        <i class="ti ti-ticket text-white fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold text-white mb-0" id="voucherModalLabel">Pilih Voucher Promo</h5>
+                        <div class="text-white opacity-75" style="font-size:.75rem;">{{ $discounts->count() }} voucher tersedia untuk Anda</div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+
+            {{-- Subtotal hint --}}
+            <div class="px-4 py-2 d-flex align-items-center gap-2" style="background:#f0f4ff; border-bottom:1px solid #dde7ff;">
+                <i class="ti ti-info-circle text-primary"></i>
+                <span class="small text-muted">Total belanja saat ini: <strong id="modalSubtotalHint" class="text-dark">Rp 0</strong></span>
+            </div>
+
+            <div class="modal-body p-4">
+                @if($discounts->count())
+                <div class="d-flex flex-column gap-3" id="voucherCardList">
+                    @foreach($discounts as $disc)
+                    <div class="voucher-card rounded-3 overflow-hidden position-relative"
+                        style="border:1.5px solid #e9ecef; cursor:pointer; transition:all .2s;"
+                        data-id="{{ $disc->id }}"
+                        data-code="{{ $disc->code }}"
+                        data-name="{{ $disc->name }}"
+                        data-type="{{ $disc->type }}"
+                        data-value="{{ $disc->value }}"
+                        data-min="{{ $disc->min_transaction ?? 0 }}"
+                        data-max="{{ $disc->max_discount ?? 0 }}"
+                        data-formatted="{{ $disc->formatted_value }}"
+                        onclick="selectVoucher(this)">
+
+                        {{-- Left accent bar --}}
+                        <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,#2563eb,#3b82f6);"></div>
+
+                        <div class="ps-4 pe-3 py-3">
+                            <div class="d-flex align-items-start justify-content-between gap-2">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        {{-- Value badge (big, prominent) --}}
+                                        <span class="fw-black text-white rounded-2 px-2 py-1"
+                                            style="background:linear-gradient(135deg,#2563eb,#3b82f6);font-size:.9rem;letter-spacing:-.3px;">
+                                            {{ $disc->type === 'percentage' ? 'DISKON ' . intval($disc->value) . '%' : 'HEMAT Rp ' . number_format($disc->value, 0, ',', '.') }}
+                                        </span>
+                                    </div>
+                                    <div class="fw-bold" style="font-size:.9rem;">{{ $disc->name }}</div>
+                                    @if($disc->description)
+                                    <div class="text-muted small">{{ $disc->description }}</div>
+                                    @endif
+
+                                    {{-- Conditions row --}}
+                                    <div class="d-flex flex-wrap gap-2 mt-2" style="font-size:.72rem;">
+                                        @if($disc->min_transaction > 0)
+                                        <span class="d-flex align-items-center gap-1 text-muted">
+                                            <i class="ti ti-shopping-cart" style="font-size:.75rem;"></i>
+                                            Min. Rp {{ number_format($disc->min_transaction, 0, ',', '.') }}
+                                        </span>
+                                        @endif
+                                        @if($disc->type === 'percentage' && $disc->max_discount > 0)
+                                        <span class="d-flex align-items-center gap-1 text-muted">
+                                            <i class="ti ti-arrow-bar-down" style="font-size:.75rem;"></i>
+                                            Maks Rp {{ number_format($disc->max_discount, 0, ',', '.') }}
+                                        </span>
+                                        @endif
+                                        @if($disc->end_date)
+                                        <span class="d-flex align-items-center gap-1 text-muted">
+                                            <i class="ti ti-clock" style="font-size:.75rem;"></i>
+                                            s/d {{ \Carbon\Carbon::parse($disc->end_date)->format('d M Y') }}
+                                        </span>
+                                        @endif
+                                        @if($disc->usage_limit)
+                                        <span class="d-flex align-items-center gap-1 text-muted">
+                                            <i class="ti ti-stack" style="font-size:.75rem;"></i>
+                                            Sisa {{ $disc->usage_limit - $disc->usage_count }}x
+                                        </span>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                {{-- Selected indicator --}}
+                                <div class="voucher-check-icon d-none flex-shrink-0 mt-1">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center"
+                                        style="width:26px;height:26px;background:#198754;">
+                                        <i class="ti ti-check text-white" style="font-size:.75rem;"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Code pill --}}
+                            <div class="mt-2">
+                                <span class="badge rounded-pill border px-2 py-1 font-monospace"
+                                    style="background:#fff;color:#6c757d;border-color:#dee2e6!important;font-size:.68rem;"
+                                    title="Kode voucher">
+                                    <i class="ti ti-barcode me-1"></i>{{ $disc->code }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+                @else
+                {{-- Empty state --}}
+                <div class="text-center py-5">
+                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                        style="width:72px;height:72px;background:#f8f9fa;">
+                        <i class="ti ti-ticket-off text-muted" style="font-size:2rem;"></i>
+                    </div>
+                    <div class="fw-semibold text-dark mb-1">Tidak Ada Voucher Aktif</div>
+                    <div class="text-muted small">Belum ada promo yang tersedia saat ini.</div>
+                </div>
+                @endif
+            </div>
+
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light rounded-pill px-4 border" data-bs-dismiss="modal">Tutup</button>
+                <button type="button" class="btn btn-primary rounded-pill px-4 fw-semibold" id="btnConfirmVoucher" onclick="confirmVoucher()" disabled>
+                    <i class="ti ti-check me-1"></i>Pakai Voucher Ini
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @push('scripts')
+@if(config('midtrans.is_production'))
+<script src="https://app.midtrans.com/snap/snap.js" data-client-key="{{ config('midtrans.client_key') }}"></script>
+@else
+<script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ config('midtrans.client_key') }}"></script>
+@endif
 <style>
 .payment-opt { user-select:none; }
 .payment-opt:hover { background: #f8f9fa !important; }
 .item-row { transition: box-shadow .2s; }
 .item-row:hover { box-shadow: 0 2px 12px rgba(37,99,235,.08); }
+/* Voucher picker */
+.voucher-card:hover { border-color:#2563eb !important; box-shadow:0 4px 16px rgba(37,99,235,.15); transform:translateY(-1px); }
+.voucher-card.selected { border-color:#198754 !important; background:#f0fff4; box-shadow:0 4px 16px rgba(25,135,84,.12); }
+.voucher-card.ineligible { opacity:.45; cursor:not-allowed; pointer-events:none; }
 </style>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -365,7 +562,19 @@ document.addEventListener('DOMContentLoaded', function () {
         const fee = settings.serviceFee;
         const total = Math.max(0, taxable + tax + fee);
         document.getElementById('summarySubtotal').textContent = fmt(subtotal);
-        document.getElementById('summaryTotal').textContent = fmt(total);
+        document.getElementById('summaryTotal').textContent    = fmt(total);
+
+        // Voucher eligibility in modal
+        document.querySelectorAll('.voucher-card').forEach(card => {
+            const min = parseFloat(card.dataset.min);
+            if (subtotal < min) {
+                card.classList.add('ineligible');
+                if (card.classList.contains('selected')) removeVoucher();
+            } else {
+                card.classList.remove('ineligible');
+            }
+        });
+
         const taxEl = document.getElementById('summaryTax');
         if (taxEl) taxEl.textContent = fmt(tax);
         const discRow = document.getElementById('discountRow');
@@ -441,13 +650,13 @@ document.addEventListener('DOMContentLoaded', function () {
         clearTimeout(searchTimer);
         const q = this.value.trim();
         clearBtn.style.display = q ? 'flex' : 'none';
-        if (q.length < 2) { suggestionsBox.classList.add('d-none'); return; }
+        if (q.length < 1) { suggestionsBox.classList.add('d-none'); return; }
         searchTimer = setTimeout(async () => {
             try {
                 const res = await fetch(`{{ route('employee.transactions.search-customers') }}?q=${encodeURIComponent(q)}`);
                 const data = await res.json();
                 if (!data.length) { suggestionsBox.classList.add('d-none'); return; }
-                suggestionsBox.innerHTML = data.map(c => `<div class="px-3 py-2 customer-item d-flex align-items-center gap-3 border-bottom" style="cursor:pointer;" data-id="${c.id}" data-name="${c.name}" data-phone="${c.phone||''}"><div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0" style="width:32px;height:32px;font-size:.8rem;background:linear-gradient(135deg,#2563eb,#60a5fa);">${c.name.charAt(0).toUpperCase()}</div><div><div class="fw-semibold small">${c.name}</div><div class="text-muted" style="font-size:.7rem;">${c.phone||'–'}</div></div></div>`).join('');
+                suggestionsBox.innerHTML = data.map(c => `<div class="px-3 py-2 customer-item d-flex align-items-center gap-3 border-bottom" style="cursor:pointer;" data-id="${c.id}" data-name="${c.name}" data-phone="${c.phone||''}"><div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0" style="width:32px;height:32px;font-size:.8rem;background:linear-gradient(135deg,#2563eb,#60a5fa);">${c.name.charAt(0).toUpperCase()}</div><div><div class="fw-semibold small">${c.name}</div><div class="text-muted" style="font-size:.7rem;">${c.phone||'–'} · ${c.address||'Tidak ada alamat'}</div></div></div>`).join('');
                 suggestionsBox.classList.remove('d-none');
             } catch(e) {}
         }, 300);
@@ -479,7 +688,73 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Discount check
+    // ── Voucher Picker Actions ──────────────────────────────────
+    const voucherModal = new bootstrap.Modal(document.getElementById('voucherModal'));
+    let tempSelectedVoucher = null;
+
+    window.openVoucherModal = function() {
+        const { subtotal } = recalc();
+        document.getElementById('modalSubtotalHint').textContent = fmt(subtotal);
+        voucherModal.show();
+    };
+
+    window.selectVoucher = function(el) {
+        if (el.classList.contains('ineligible')) return;
+        document.querySelectorAll('.voucher-card').forEach(c => c.classList.remove('selected'));
+        document.querySelectorAll('.voucher-check-icon').forEach(i => i.classList.add('d-none'));
+
+        el.classList.add('selected');
+        el.querySelector('.voucher-check-icon').classList.remove('d-none');
+        tempSelectedVoucher = { ...el.dataset };
+        document.getElementById('btnConfirmVoucher').disabled = false;
+    };
+
+    window.confirmVoucher = function() {
+        if (!tempSelectedVoucher) return;
+
+        const { subtotal } = recalc();
+        let saving = 0;
+        const val  = parseFloat(tempSelectedVoucher.value);
+        const max  = parseFloat(tempSelectedVoucher.max);
+
+        if (tempSelectedVoucher.type === 'percentage') {
+            saving = Math.round(subtotal * val / 100);
+            if (max > 0 && saving > max) saving = max;
+        } else {
+            saving = val;
+        }
+
+        window.discountAmountValue = saving; // Use a dedicated property
+        window.discountAmount = saving;
+
+        // UI Updates
+        document.getElementById('voucherPickerRow').classList.add('d-none');
+        document.getElementById('voucherApplied').classList.remove('d-none');
+        document.getElementById('voucherAppliedName').textContent = tempSelectedVoucher.name;
+        document.getElementById('voucherAppliedSaving').textContent = 'Hemat ' + fmt(saving);
+        document.getElementById('discount_code').value = tempSelectedVoucher.code;
+        document.getElementById('discount_code').readOnly = true;
+        document.getElementById('voucherSelectedBadge').classList.remove('d-none');
+
+        recalc();
+        voucherModal.hide();
+    };
+
+    window.removeVoucher = function() {
+        window.discountAmount = 0;
+        tempSelectedVoucher = null;
+        document.getElementById('voucherPickerRow').classList.remove('d-none');
+        document.getElementById('voucherApplied').classList.add('d-none');
+        document.getElementById('discount_code').value = '';
+        document.getElementById('discount_code').readOnly = false;
+        document.getElementById('voucherSelectedBadge').classList.add('d-none');
+        document.querySelectorAll('.voucher-card').forEach(c => c.classList.remove('selected'));
+        document.querySelectorAll('.voucher-check-icon').forEach(i => i.classList.add('d-none'));
+        document.getElementById('btnConfirmVoucher').disabled = true;
+        recalc();
+    };
+
+    // ── Check discount (Manual) ────────────────────────────────
     document.getElementById('btnCheckDiscount').addEventListener('click', async function () {
         const code = document.getElementById('discount_code').value.trim();
         const { subtotal } = recalc();
@@ -500,11 +775,107 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // Submit
-    document.getElementById('transactionForm').addEventListener('submit', function () {
+    const transactionForm = document.getElementById('transactionForm');
+    transactionForm.addEventListener('submit', async function (e) {
+        e.preventDefault();
+
         const btn = document.getElementById('btnSubmit');
-        btn.querySelector('.btn-text').classList.add('d-none');
-        btn.querySelector('.btn-loading').classList.remove('d-none');
+        const btnText = btn.querySelector('.btn-text');
+        const btnLoading = btn.querySelector('.btn-loading');
+
+        // Reset state
         btn.disabled = true;
+        btnText.classList.add('d-none');
+        btnLoading.classList.remove('d-none');
+
+        // Prepare data
+        const formData = new FormData(this);
+        const data = {};
+        formData.forEach((value, key) => {
+            // Handle nested items like items[0][service_id]
+            if (key.includes('[')) {
+                const parts = key.split(/\[|\]/).filter(p => p !== '');
+                let current = data;
+                for (let i = 0; i < parts.length; i++) {
+                    const p = parts[i];
+                    if (i === parts.length - 1) {
+                        current[p] = value;
+                    } else {
+                        current[p] = current[p] || (isNaN(parts[i+1]) ? {} : []);
+                        current = current[p];
+                    }
+                }
+            } else {
+                data[key] = value;
+            }
+        });
+
+        // Add discount code if exists
+        data.discount_code = document.getElementById('discount_code').value;
+
+        try {
+            const response = await fetch(this.action, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                if (response.status === 422) {
+                    let errors = '';
+                    Object.values(result.errors || {}).forEach(err => errors += `<li>${err}</li>`);
+                    throw new Error(`<ul class="text-start small mb-0">${errors || result.error}</ul>`);
+                }
+                throw new Error(result.error || 'Terjadi kesalahan sistem.');
+            }
+
+            // Case 1: Midtrans Payment
+            if (result.snap_token) {
+                snap.pay(result.snap_token, {
+                    onSuccess: async function() { 
+                        await fetch(`{{ url('employee/transactions') }}/${result.order_id}/check-payment`);
+                        window.location.href = result.redirect; 
+                    },
+                    onPending: function() { window.location.href = result.redirect; },
+                    onError:   function() { Swal.fire('Gagal', 'Pembayaran gagal.', 'error').then(() => window.location.href = result.redirect); },
+                    onClose:   function() { 
+                        Swal.fire({
+                            title: 'Pesan Tersimpan',
+                            text: 'Transaksi berhasil dicatat, namun pembayaran belum diselesaikan.',
+                            icon: 'info'
+                        }).then(() => window.location.href = result.redirect);
+                    }
+                });
+            } 
+            // Case 2: Cash or direct success
+            else {
+                Swal.fire({
+                    title: 'Berhasil!',
+                    text: result.message,
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false
+                }).then(() => {
+                    window.location.href = result.redirect;
+                });
+            }
+
+        } catch (error) {
+            Swal.fire({
+                title: 'Gagal Menyimpan',
+                html: error.message,
+                icon: 'error'
+            });
+            btn.disabled = false;
+            btnText.classList.remove('d-none');
+            btnLoading.classList.add('d-none');
+        }
     });
 
     recalc();

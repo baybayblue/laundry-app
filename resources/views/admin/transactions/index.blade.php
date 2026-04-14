@@ -194,6 +194,7 @@
                         <th class="py-3 text-muted fw-semibold small text-uppercase" style="letter-spacing:.5px;">Invoice</th>
                         <th class="py-3 text-muted fw-semibold small text-uppercase" style="letter-spacing:.5px;">Pelanggan</th>
                         <th class="py-3 text-muted fw-semibold small text-uppercase" style="letter-spacing:.5px;">Layanan</th>
+                        <th class="py-3 text-muted fw-semibold small text-uppercase" style="letter-spacing:.5px;">Sumber</th>
                         <th class="py-3 text-muted fw-semibold small text-uppercase" style="letter-spacing:.5px;">Total</th>
                         <th class="py-3 text-muted fw-semibold small text-uppercase" style="letter-spacing:.5px;">Status</th>
                         <th class="py-3 text-muted fw-semibold small text-uppercase" style="letter-spacing:.5px;">Bayar</th>
@@ -238,6 +239,13 @@
                             <div class="text-muted text-truncate" style="max-width:140px;font-size:.72rem;">
                                 {{ $trx->items->pluck('service_name')->join(', ') }}
                             </div>
+                        </td>
+                        <td>
+                            <span class="badge rounded-pill px-2 py-1 small" 
+                                  style="background: {{ $trx->source_color }}15; color: {{ $trx->source_color }}; border: 1px solid {{ $trx->source_color }}30; font-size:.65rem;">
+                                <i class="ti {{ $trx->source === 'online_customer' ? 'ti-world' : 'ti-walk' }} me-1"></i>
+                                {{ $trx->source_label }}
+                            </span>
                         </td>
                         <td>
                             <span class="fw-semibold text-dark small">Rp {{ number_format($trx->total_amount, 0, ',', '.') }}</span>

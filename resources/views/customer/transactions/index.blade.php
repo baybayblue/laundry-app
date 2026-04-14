@@ -85,6 +85,13 @@
                                 </button>
                                 @endif
                             @endif
+                            @if(in_array($trx->order_status, ['pending', 'processing']))
+                                <button class="btn btn-sm btn-outline-danger rounded-circle p-0 d-inline-flex align-items-center justify-content-center btn-cancel-request" 
+                                        data-url="{{ route('customer.transactions.request-cancel', $trx) }}"
+                                        style="width:30px;height:30px;" title="Ajukan Hapus">
+                                    <i class="ti ti-trash"></i>
+                                </button>
+                            @endif
                             <a href="{{ route('customer.transactions.show', $trx) }}" class="btn btn-sm btn-icon rounded-circle bg-light border-0 d-inline-flex align-items-center justify-content-center" style="width:30px;height:30px;">
                                 <i class="ti ti-chevron-right text-primary"></i>
                             </a>
@@ -157,6 +164,38 @@
                     this.disabled = false;
                     this.innerHTML = originalText;
                 }
+            });
+        });
+
+        const cancelBtns = document.querySelectorAll('.btn-cancel-request');
+        cancelBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                Swal.fire({
+                    title: 'Ajukan Hapus / Batal?',
+                    text: 'Admin akan mengecek permintaan pembatalan Anda.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc3545',
+                    confirmButtonText: 'Ya, Ajukan!',
+                    cancelButtonText: 'Kembali'
+                }).then(async (result) => {
+                    if (result.isConfirmed) {
+                        try {
+                            const res = await fetch(this.dataset.url, {
+                                method: 'POST',
+                                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
+                            });
+                            const data = await res.json();
+                            if (data.success) {
+                                Swal.fire('Berhasil!', data.message, 'success').then(() => window.location.reload());
+                            } else {
+                                Swal.fire('Gagal', data.error, 'error');
+                            }
+                        } catch (e) {
+                            Swal.fire('Error', 'Terjadi kesalahan sistem.', 'error');
+                        }
+                    }
+                });
             });
         });
     });

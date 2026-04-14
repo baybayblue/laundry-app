@@ -25,6 +25,18 @@
         </div>
     </div>
     <div class="col-12 col-md-5 d-flex gap-2 justify-content-md-end flex-wrap">
+        @if($transaction->payment_method === 'midtrans' && $transaction->payment_status !== 'paid' && !in_array($transaction->order_status, ['cancelled', 'cancel_requested']))
+        <button type="button" id="btnRefreshPayment"
+            class="btn btn-sm btn-outline-primary rounded-pill px-3 d-flex align-items-center gap-2 shadow-sm"
+            data-url="{{ route('employee.transactions.check-payment', $transaction) }}">
+            <i class="ti ti-refresh"></i> Cek Bayar
+        </button>
+        @endif
+        @if(!in_array($transaction->order_status, ['cancelled', 'cancel_requested']))
+        <button type="button" class="btn btn-sm btn-danger rounded-pill px-3 d-flex align-items-center gap-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#deleteRequestModal">
+            <i class="ti ti-trash"></i> Ajukan Penghapusan
+        </button>
+        @endif
         <a href="{{ route('employee.transactions.index') }}"
             class="btn btn-sm btn-light rounded-pill px-3 d-flex align-items-center gap-2 border shadow-sm">
             <i class="ti ti-arrow-left"></i> Kembali
@@ -100,9 +112,50 @@
     </div>
 </div>
 
+@if($transaction->order_status === 'cancel_requested')
+<div class="alert border-0 shadow-sm rounded-4 mb-4 d-flex align-items-center gap-3" style="background: #6f42c110; border-left: 4px solid #6f42c1 !important;">
+    <div class="bg-purple bg-opacity-10 rounded-circle p-2" style="background-color: #6f42c120 !important;">
+        <i class="ti ti-alert-triangle fs-4" style="color: #6f42c1;"></i>
+    </div>
+    <div class="flex-grow-1">
+        <div class="fw-bold mb-0" style="color: #6f42c1;">Menunggu Persetujuan Penghapusan</div>
+        <p class="mb-0 small text-muted">
+            Anda telah mengajukan penghapusan transaksi ini pada {{ $transaction->delete_requested_at->format('d/m/Y H:i') }}.
+            <br><strong>Alasan:</strong> {{ $transaction->delete_reason }}
+        </p>
+    </div>
+    <div class="small fw-semibold text-purple">Pending</div>
+</div>
+@endif
+
 <div class="row g-4">
     {{-- ── KIRI ── --}}
     <div class="col-12 col-lg-8">
+
+        {{-- Bayar Sekarang (Midtrans pending) --}}
+        @if($transaction->payment_method === 'midtrans' && $transaction->payment_status === 'pending' && $transaction->midtrans_snap_token && !in_array($transaction->order_status, ['cancelled', 'cancel_requested']))
+        <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
+            <div style="height:3px;background:linear-gradient(90deg,var(--bs-primary),#60a5fa);"></div>
+            <div class="card-body p-4 d-flex align-items-center justify-content-between gap-3 flex-wrap">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-3 p-2 bg-primary bg-opacity-10 flex-shrink-0">
+                        <i class="ti ti-credit-card text-primary fs-4"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold mb-1 text-primary">Pembayaran Online Tertunda</h6>
+                        <p class="text-muted small mb-0">Klik tombol untuk membayar via Midtrans (QRIS, VA, E-Wallet)</p>
+                    </div>
+                </div>
+                <button type="button" id="btnPayNow"
+                    class="btn btn-primary fw-semibold rounded-pill px-4 shadow-sm flex-shrink-0"
+                    data-snap-token="{{ $transaction->midtrans_snap_token }}"
+                    data-check-url="{{ route('employee.transactions.check-payment', $transaction) }}"
+                    data-redirect="{{ route('employee.transactions.show', $transaction) }}">
+                    <i class="ti ti-credit-card me-2"></i>Bayar Sekarang
+                </button>
+            </div>
+        </div>
+        @endif
 
         {{-- Timeline Status --}}
         <div class="card border-0 shadow-sm rounded-4 mb-4">
@@ -268,6 +321,46 @@
                 </div>
             </div>
 
+            {{-- Update Status --}}
+            @if(!in_array($transaction->order_status, ['cancelled', 'cancel_requested', 'delivered']))
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-body p-4">
+                    <h6 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                        <i class="ti ti-arrows-exchange text-primary"></i> Ubah Status Order
+                    </h6>
+                    @php
+                        $statusFlow = [
+                            'pending'    => ['label'=>'Menunggu',  'color'=>'#fd7e14', 'icon'=>'ti-clock'],
+                            'processing' => ['label'=>'Diproses',  'color'=>'#2563eb', 'icon'=>'ti-loader'],
+                            'done'       => ['label'=>'Selesai',   'color'=>'#198754', 'icon'=>'ti-check'],
+                            'delivered'  => ['label'=>'Terkirim',  'color'=>'#20c997', 'icon'=>'ti-truck'],
+                        ];
+                    @endphp
+                    <div class="d-flex flex-column gap-2">
+                        @foreach($statusFlow as $status => $info)
+                        <button type="button"
+                            class="btn btn-sm text-start rounded-3 status-btn d-flex align-items-center gap-2"
+                            style="background:{{ $transaction->order_status === $status ? $info['color'].'20' : '#f8f9fa' }};
+                                   color:{{ $transaction->order_status === $status ? $info['color'] : '#6c757d' }};
+                                   border:1px solid {{ $transaction->order_status === $status ? $info['color'].'40' : '#e9ecef' }};
+                                   font-weight:{{ $transaction->order_status === $status ? '700' : '400' }};"
+                            data-status="{{ $status }}"
+                            data-url="{{ route('employee.transactions.update-status', $transaction) }}"
+                            {{ $transaction->order_status === $status ? 'disabled' : '' }}>
+                            <i class="ti {{ $info['icon'] }}" style="font-size:.9rem;"></i>
+                            {{ $info['label'] }}
+                            @if($transaction->order_status === $status)
+                            <span class="ms-auto badge rounded-pill text-white" style="background:{{ $info['color'] }};font-size:.6rem;">Saat ini</span>
+                            @else
+                            <i class="ti ti-chevron-right ms-auto" style="font-size:.8rem;opacity:.4;"></i>
+                            @endif
+                        </button>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+            @endif
+
             {{-- Informasi Transaksi --}}
             <div class="card border-0 shadow-sm rounded-4">
                 <div class="card-body p-4">
@@ -338,4 +431,165 @@
     </div>
 </div>
 
+        </div>
+    </div>
+</div>
+
+{{-- MODAL AJUKAN PENGHAPUSAN --}}
+@if(!in_array($transaction->order_status, ['cancelled', 'cancel_requested']))
+<div class="modal fade" id="deleteRequestModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">Ajukan Penghapusan</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="deleteRequestForm">
+                    @csrf
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Alasan Penghapusan <span class="text-danger">*</span></label>
+                        <textarea class="form-control border-secondary-subtle rounded-3" name="reason" rows="4" placeholder="Jelaskan alasan mengapa transaksi ini perlu dihapus/dibatalkan..." required></textarea>
+                    </div>
+                    <div class="alert alert-warning border-0 rounded-3 small d-flex gap-2">
+                        <i class="ti ti-info-circle fs-5 mt-1"></i>
+                        <div>
+                            Pengajuan Anda akan ditinjau oleh <strong>Admin/Owner</strong>. Transaksi tidak akan langsung terhapus.
+                        </div>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-danger rounded-pill fw-bold py-2 shadow-sm" id="btnSubmitDelete">
+                            <span class="btn-text">Kirim Pengajuan</span>
+                            <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-2"></span>Mengirim...</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+
+@push('scripts')
+@if(config('midtrans.is_production'))
+<script src="https://app.midtrans.com/snap/snap.js" data-client-key="{{ config('midtrans.client_key') }}"></script>
+@else
+<script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ config('midtrans.client_key') }}"></script>
+@endif
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+
+        // ── Pay Now ───────────────────────────────────────────────
+        const btnPayNow = document.getElementById('btnPayNow');
+        if (btnPayNow) {
+            btnPayNow.addEventListener('click', function () {
+                const checkUrl   = this.dataset.checkUrl;
+                const redirectUrl = this.dataset.redirect;
+                snap.pay(this.dataset.snapToken, {
+                    onSuccess: async () => { await fetch(checkUrl); window.location.href = redirectUrl; },
+                    onPending: async () => { await fetch(checkUrl); window.location.reload(); },
+                    onError:   () => Swal.fire('Gagal', 'Pembayaran tidak berhasil.', 'error'),
+                    onClose:   () => Swal.fire('Info', 'Pembayaran ditutup. Bisa dilanjutkan kapan saja.', 'info'),
+                });
+            });
+        }
+
+        // ── Cek Pembayaran ────────────────────────────────────────
+        document.getElementById('btnRefreshPayment')?.addEventListener('click', async function () {
+            this.disabled = true;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Mengecek...';
+            try {
+                const res  = await fetch(this.dataset.url);
+                const data = await res.json();
+                if (data.status === 'paid') {
+                    Swal.fire('Berhasil!', data.message, 'success').then(() => window.location.reload());
+                } else {
+                    Swal.fire('Info', data.message, 'info');
+                }
+            } catch (e) {
+                Swal.fire('Error', 'Gagal mengecek status.', 'error');
+            }
+            this.disabled = false;
+            this.innerHTML = '<i class="ti ti-refresh"></i> Cek Bayar';
+        });
+
+        // ── Update Status ─────────────────────────────────────────
+        document.querySelectorAll('.status-btn:not([disabled])').forEach(btn => {
+            btn.addEventListener('click', async function () {
+                const label = this.textContent.trim().split('\n')[0].trim();
+                const confirmed = await Swal.fire({
+                    title: 'Ubah Status?',
+                    html: `Status pesanan akan diubah ke: <strong>${label}</strong>`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#2563eb',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Ya, Ubah',
+                    cancelButtonText: 'Batal',
+                    reverseButtons: true,
+                });
+                if (!confirmed.isConfirmed) return;
+
+                const res  = await fetch(this.dataset.url, {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify({ order_status: this.dataset.status }),
+                });
+                const data = await res.json();
+                if (data.success) {
+                    Swal.fire({ toast: true, position: 'bottom-end', icon: 'success', title: data.message, showConfirmButton: false, timer: 2000 });
+                    setTimeout(() => window.location.reload(), 800);
+                } else {
+                    Swal.fire('Gagal', data.error || 'Terjadi kesalahan.', 'error');
+                }
+            });
+        });
+
+        const deleteForm = document.getElementById('deleteRequestForm');
+        const btnSubmit = document.getElementById('btnSubmitDelete');
+
+        if (deleteForm) {
+            deleteForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                
+                const reason = deleteForm.querySelector('textarea[name="reason"]').value;
+                if (!reason) return Swal.fire('Error', 'Alasan wajib diisi!', 'error');
+
+                btnSubmit.disabled = true;
+                btnSubmit.querySelector('.btn-text').classList.add('d-none');
+                btnSubmit.querySelector('.btn-loading').classList.remove('d-none');
+
+                fetch("{{ route('employee.transactions.request-delete', $transaction) }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ reason: reason })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            title: 'Berhasil!',
+                            text: data.message,
+                            icon: 'success'
+                        }).then(() => location.reload());
+                    } else {
+                        throw new Error(data.error || 'Terjadi kesalahan');
+                    }
+                })
+                .catch(err => {
+                    Swal.fire('Gagal', err.message, 'error');
+                    btnSubmit.disabled = false;
+                    btnSubmit.querySelector('.btn-text').classList.remove('d-none');
+                    btnSubmit.querySelector('.btn-loading').classList.add('d-none');
+                });
+            });
+        }
+    });
+</script>
+@endpush
 @endsection

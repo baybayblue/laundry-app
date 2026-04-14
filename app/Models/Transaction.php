@@ -16,6 +16,9 @@ class Transaction extends Model
         'payment_method', 'payment_status', 'order_status', 'notes',
         'pickup_date', 'midtrans_order_id', 'midtrans_snap_token',
         'midtrans_payment_type', 'paid_at', 'created_by',
+        'delete_requested_by', 'delete_reason', 'delete_requested_at',
+        'delete_approved_by', 'delete_approved_at',
+        'source', 'pickup_address',
     ];
 
     protected $casts = [
@@ -25,7 +28,9 @@ class Transaction extends Model
         'service_fee'     => 'decimal:2',
         'total_amount'    => 'decimal:2',
         'pickup_date'     => 'date',
-        'paid_at'         => 'datetime',
+        'paid_at'             => 'datetime',
+        'delete_requested_at' => 'datetime',
+        'delete_approved_at'  => 'datetime',
     ];
 
     // ── Relationships ──────────────────────────────────────────
@@ -49,6 +54,16 @@ class Transaction extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function deleteRequestedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'delete_requested_by');
+    }
+
+    public function deleteApprovedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'delete_approved_by');
+    }
+
     // ── Computed Attributes ────────────────────────────────────
     public function getOrderStatusLabelAttribute(): string
     {
@@ -58,7 +73,7 @@ class Transaction extends Model
             'done'             => 'Selesai',
             'delivered'        => 'Terkirim',
             'cancelled'        => 'Dibatalkan',
-            'cancel_requested' => 'Menunggu Pembatalan',
+            'cancel_requested' => 'Menunggu Penghapusan',
             default            => ucfirst($this->order_status),
         };
     }
@@ -95,6 +110,24 @@ class Transaction extends Model
             'failed'  => '#dc3545',
             'expired' => '#6c757d',
             default   => '#6c757d',
+        };
+    }
+
+    public function getSourceLabelAttribute(): string
+    {
+        return match ($this->source) {
+            'walk_in'          => 'Walk-in',
+            'online_customer'  => 'Online (Pelanggan)',
+            default            => ucfirst($this->source),
+        };
+    }
+
+    public function getSourceColorAttribute(): string
+    {
+        return match ($this->source) {
+            'walk_in'          => '#6c757d',
+            'online_customer'  => '#2563eb',
+            default            => '#6c757d',
         };
     }
 

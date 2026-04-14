@@ -66,7 +66,12 @@
         </li>
         <li>
             <a class="nav-link {{ request()->routeIs('admin.attendances.index') ? 'active' : '' }}" href="{{ route('admin.attendances.index') }}">
-                <i class="ti ti-calendar-check"></i><span class="nav-text">Absensi Karyawan</span>
+                <i class="ti ti-calendar-check"></i><span class="nav-text">Monitoring Absensi</span>
+            </a>
+        </li>
+        <li>
+            <a class="nav-link {{ request()->routeIs('admin.leave-requests.*') ? 'active' : '' }}" href="{{ route('admin.leave-requests.index') }}">
+                <i class="ti ti-calendar-event"></i><span class="nav-text">Data Pengajuan Cuti</span>
             </a>
         </li>
 
@@ -109,7 +114,12 @@
         </li>
         <li>
             <a class="nav-link {{ request()->routeIs('admin.attendances.index') ? 'active' : '' }}" href="{{ route('admin.attendances.index') }}">
-                <i class="ti ti-calendar-check"></i><span class="nav-text">Absensi Karyawan</span>
+                <i class="ti ti-calendar-check"></i><span class="nav-text">Monitoring Absensi</span>
+            </a>
+        </li>
+        <li>
+            <a class="nav-link {{ request()->routeIs('admin.leave-requests.*') ? 'active' : '' }}" href="{{ route('admin.leave-requests.index') }}">
+                <i class="ti ti-calendar-event"></i><span class="nav-text">Monitoring Cuti</span>
             </a>
         </li>
         @endif
@@ -135,10 +145,19 @@
             </a>
         </li>
 
-        <li class="px-4 py-2 mt-2"><small class="nav-text">Presensi</small></li>
+        <li>
+            <a class="nav-link {{ request()->routeIs('employee.customers.*') ? 'active' : '' }}" href="{{ route('employee.customers.index') }}">
+                <i class="ti ti-users"></i><span class="nav-text">Data Pelanggan</span>
+            </a>
+        </li>
         <li>
             <a class="nav-link {{ request()->routeIs('employee.attendances.clock') ? 'active' : '' }}" href="{{ route('employee.attendances.clock') }}">
                 <i class="ti ti-alarm"></i><span class="nav-text">Presensi Sekarang</span>
+            </a>
+        </li>
+        <li>
+            <a class="nav-link {{ request()->routeIs('employee.leave-requests.*') ? 'active' : '' }}" href="{{ route('employee.leave-requests.index') }}">
+                <i class="ti ti-calendar-event"></i><span class="nav-text">Pengajuan Cuti/Izin</span>
             </a>
         </li>
         @endif

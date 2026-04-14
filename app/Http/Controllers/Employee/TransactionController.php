@@ -13,6 +13,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Midtrans\Config;
+use Midtrans\Snap;
 
 class TransactionController extends Controller
 {
@@ -64,7 +66,7 @@ class TransactionController extends Controller
     public function searchCustomers(Request $request)
     {
         $q = trim($request->q ?? '');
-        if (strlen($q) < 2) {
+        if (strlen($q) < 1) {
             return response()->json([]);
         }
 
@@ -219,7 +221,27 @@ class TransactionController extends Controller
                 TransactionItem::create($item);
             }
 
+            // ── Midtrans Snap Token ────────────────────────────
+            if ($request->payment_method === 'midtrans') {
+                $snapToken = $this->createSnapToken($transaction, $settings);
+                if ($snapToken) {
+                    $transaction->update([
+                        'midtrans_order_id'   => $transaction->invoice_number,
+                        'midtrans_snap_token' => $snapToken,
+                    ]);
+                }
+            }
+
             DB::commit();
+
+            if ($request->payment_method === 'midtrans' && $transaction->midtrans_snap_token) {
+                return response()->json([
+                    'success'    => true,
+                    'snap_token' => $transaction->midtrans_snap_token,
+                    'order_id'   => $transaction->invoice_number,
+                    'redirect'   => route('employee.transactions.show', $transaction),
+                ]);
+            }
 
             if ($request->expectsJson() || $request->ajax()) {
                 return response()->json([
@@ -242,6 +264,87 @@ class TransactionController extends Controller
         }
     }
 
+    private function createSnapToken(Transaction $transaction, array $settings): ?string
+    {
+        try {
+            Config::$serverKey    = config('midtrans.server_key');
+            Config::$isProduction = config('midtrans.is_production');
+            Config::$isSanitized  = config('midtrans.is_sanitized');
+            Config::$is3ds        = config('midtrans.is_3ds');
+
+            $params = [
+                'transaction_details' => [
+                    'order_id'     => $transaction->invoice_number,
+                    'gross_amount' => (int) $transaction->total_amount,
+                ],
+                'customer_details' => [
+                    'first_name' => $transaction->customer_name,
+                    'phone'      => $transaction->customer_phone ?? '',
+                    'email'      => $transaction->customer?->email ?? 'noreply@laundry.com',
+                ],
+                'item_details' => $transaction->items->map(fn($item) => [
+                    'id'       => 'SVC-' . $item->service_id,
+                    'price'    => (int) $item->unit_price,
+                    'quantity' => (int) ceil($item->quantity),
+                    'name'     => $item->service_name . ' (' . $item->quantity . ' ' . $item->getTypeLabel() . ')',
+                ])->toArray(),
+                'callbacks' => [
+                    'finish' => route('employee.transactions.show', $transaction),
+                ],
+            ];
+
+            if ($transaction->discount_amount > 0) {
+                $params['item_details'][] = [
+                    'id'       => 'DISC',
+                    'price'    => -(int) $transaction->discount_amount,
+                    'quantity' => 1,
+                    'name'     => 'Diskon ' . ($transaction->discount_code ?? ''),
+                ];
+            }
+
+            if ($transaction->tax_amount > 0) {
+                $params['item_details'][] = [
+                    'id'       => 'TAX',
+                    'price'    => (int) $transaction->tax_amount,
+                    'quantity' => 1,
+                    'name'     => 'PPN',
+                ];
+            }
+
+            return Snap::getSnapToken($params);
+
+        } catch (\Throwable $e) {
+            Log::error('Employee Midtrans getSnapToken error: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    public function updateStatus(Request $request, Transaction $transaction)
+    {
+        // Ownership check
+        if ($transaction->created_by !== Auth::id()) {
+            return response()->json(['error' => 'Anda tidak memiliki akses ke transaksi ini.'], 403);
+        }
+
+        // Validity check (cannot update if cancelled or requested for deletion)
+        if (in_array($transaction->order_status, ['cancelled', 'cancel_requested'])) {
+            return response()->json(['error' => 'Status transaksi tidak dapat diubah (Dibatalkan/Sedang Diajukan Penghapusan).'], 422);
+        }
+
+        $request->validate([
+            'order_status' => 'required|in:pending,processing,done,delivered',
+        ]);
+
+        $transaction->update(['order_status' => $request->order_status]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Status diubah ke: {$transaction->order_status_label}",
+            'label'   => $transaction->order_status_label,
+            'color'   => $transaction->order_status_color,
+        ]);
+    }
+
     // ── SHOW ───────────────────────────────────────────────────
     public function show(Transaction $transaction)
     {
@@ -253,5 +356,38 @@ class TransactionController extends Controller
         $transaction->load(['items.service', 'customer', 'discount', 'createdBy']);
         $settings = Setting::allFlat();
         return view('employee.transactions.show', compact('transaction', 'settings'));
+    }
+
+    public function requestDelete(Request $request, Transaction $transaction)
+    {
+        // Ownership check
+        if ($transaction->created_by !== Auth::id()) {
+            return response()->json(['error' => 'Anda tidak memiliki akses ke transaksi ini.'], 403);
+        }
+
+        // Validity check
+        if ($transaction->order_status === 'cancelled') {
+            return response()->json(['error' => 'Transaksi sudah dibatalkan.'], 422);
+        }
+
+        if ($transaction->order_status === 'cancel_requested') {
+            return response()->json(['error' => 'Pengajuan penghapusan sedang diproses.'], 422);
+        }
+
+        $request->validate([
+            'reason' => 'required|string|max:500',
+        ]);
+
+        $transaction->update([
+            'order_status'        => 'cancel_requested',
+            'delete_reason'       => $request->reason,
+            'delete_requested_by' => Auth::id(),
+            'delete_requested_at' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Pengajuan penghapusan berhasil dikirim. Mohon tunggu persetujuan Admin/Owner.'
+        ]);
     }
 }

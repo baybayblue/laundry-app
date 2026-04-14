@@ -71,7 +71,7 @@ class TransactionController extends Controller
     public function searchCustomers(Request $request)
     {
         $q = trim($request->q ?? '');
-        if (strlen($q) < 2) {
+        if (strlen($q) < 1) {
             return response()->json([]);
         }
 
@@ -349,14 +349,40 @@ class TransactionController extends Controller
     public function approveCancel(Transaction $transaction)
     {
         if ($transaction->order_status !== 'cancel_requested') {
-            return response()->json(['error' => 'Transaksi tidak dalam pengajuan pembatalan.'], 422);
+            return response()->json(['error' => 'Transaksi tidak dalam pengajuan pembatalan/penghapusan.'], 422);
         }
 
-        $transaction->update(['order_status' => 'cancelled']);
+        $transaction->update([
+            'order_status'       => 'cancelled',
+            'delete_approved_by' => auth()->id(),
+            'delete_approved_at' => now(),
+        ]);
 
         return response()->json([
             'success' => true,
-            'message' => "Pembatalan transaksi {$transaction->invoice_number} disetujui.",
+            'message' => "Pengajuan penghapusan transaksi {$transaction->invoice_number} disetujui. Status berubah menjadi Dibatalkan.",
+        ]);
+    }
+
+    public function rejectDelete(Transaction $transaction)
+    {
+        if ($transaction->order_status !== 'cancel_requested') {
+            return response()->json(['error' => 'Transaksi tidak dalam pengajuan pembatalan/penghapusan.'], 422);
+        }
+
+        // Revert status back to its previous state? Or just to 'processing' if it was processing.
+        // For simplicity, we'll revert to 'processing' or 'pending' based on payment_status.
+        $newStatus = $transaction->payment_status === 'paid' ? 'processing' : 'pending';
+
+        $transaction->update([
+            'order_status' => $newStatus,
+            // We keep the delete_reason and requester for history, but maybe clear the pending state fields?
+            // Actually, better to keep them so we know it WAS requested and rejected.
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Pengajuan penghapusan transaksi {$transaction->invoice_number} ditolak. Status dikembalikan ke {$newStatus}.",
         ]);
     }
 

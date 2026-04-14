@@ -19,6 +19,11 @@
                         style="background:{{ $transaction->order_status_color }}18;color:{{ $transaction->order_status_color }};border:1px solid {{ $transaction->order_status_color }}30;font-size:.7rem;">
                         {{ $transaction->order_status_label }}
                     </span>
+                    <span class="badge rounded-pill fw-medium small"
+                        style="background:{{ $transaction->source_color }}18;color:{{ $transaction->source_color }};border:1px solid {{ $transaction->source_color }}30;font-size:.7rem;">
+                        <i class="ti {{ $transaction->source === 'online_customer' ? 'ti-world' : 'ti-walk' }} me-1"></i>
+                        Sumber: {{ $transaction->source_label }}
+                    </span>
                 </div>
                 <h1 class="fs-4 mb-0 fw-bold">Detail Transaksi</h1>
             </div>
@@ -26,17 +31,24 @@
     </div>
     <div class="col-12 col-md-5 d-flex gap-2 justify-content-md-end flex-wrap">
         @if($transaction->order_status === 'cancel_requested')
-        <button type="button" id="btnApproveCancel"
-            class="btn btn-sm btn-danger rounded-pill px-3 d-flex align-items-center gap-2 shadow-sm"
-            data-url="{{ route('admin.transactions.approve-cancel', $transaction) }}">
-            <i class="ti ti-check"></i> Setujui Pembatalan
-        </button>
+        <div class="d-flex gap-2">
+            <button type="button" id="btnApproveCancel"
+                class="btn btn-sm btn-danger rounded-pill px-3 d-flex align-items-center gap-2 shadow-sm"
+                data-url="{{ route('admin.transactions.approve-cancel', $transaction) }}">
+                <i class="ti ti-check"></i> Setujui Penghapusan
+            </button>
+            <button type="button" id="btnRejectDelete"
+                class="btn btn-sm btn-outline-secondary rounded-pill px-3 d-flex align-items-center gap-2 shadow-sm"
+                data-url="{{ route('admin.transactions.reject-delete', $transaction) }}">
+                <i class="ti ti-x"></i> Tolak Pengajuan
+            </button>
+        </div>
         @endif
         <a href="{{ route('admin.transactions.invoice', $transaction) }}" target="_blank"
             class="btn btn-sm btn-light rounded-pill px-3 d-flex align-items-center gap-2 border shadow-sm">
             <i class="ti ti-printer text-muted"></i> Cetak Invoice
         </a>
-        @if($transaction->payment_method === 'midtrans' && $transaction->payment_status !== 'paid')
+        @if($transaction->payment_method === 'midtrans' && $transaction->payment_status !== 'paid' && !in_array($transaction->order_status, ['cancelled', 'cancel_requested']))
         <button type="button" id="btnRefreshPayment"
             class="btn btn-sm btn-outline-primary rounded-pill px-3 d-flex align-items-center gap-2"
             data-url="{{ route('admin.transactions.check-payment', $transaction) }}">
@@ -59,10 +71,34 @@
     </div>
 </div>
 
-@if(session('success'))
-<div class="alert border-0 rounded-4 shadow-sm mb-4 d-flex align-items-center gap-2" style="background:#19875415;border-left:3px solid #198754 !important;">
-    <i class="ti ti-circle-check text-success fs-5"></i>
-    <span class="small fw-medium text-success">{{ session('success') }}</span>
+@if($transaction->order_status === 'cancel_requested')
+<div class="alert border-0 shadow-sm rounded-4 mb-4 d-flex align-items-center gap-3" style="background: #6f42c110; border-left: 4px solid #6f42c1 !important;">
+    <div class="bg-purple bg-opacity-10 rounded-circle p-2" style="background-color: #6f42c120 !important;">
+        <i class="ti ti-alert-triangle fs-4" style="color: #6f42c1;"></i>
+    </div>
+    <div class="flex-grow-1">
+        <div class="fw-bold mb-0" style="color: #6f42c1;">Pengajuan Penghapusan Transaksi</div>
+        <p class="mb-0 small text-muted">
+            Diajukan oleh: <strong>{{ $transaction->deleteRequestedBy->name ?? 'User' }}</strong> pada {{ $transaction->delete_requested_at ? $transaction->delete_requested_at->format('d M Y, H:i') : '-' }}.
+            <br><strong>Alasan:</strong> {{ $transaction->delete_reason }}
+        </p>
+    </div>
+    <div class="small fw-semibold text-purple">Butuh Persetujuan</div>
+</div>
+@endif
+
+@if($transaction->order_status === 'cancelled' && $transaction->delete_approved_by)
+<div class="alert border-0 shadow-sm rounded-4 mb-4 d-flex align-items-center gap-3" style="background: #f8f9fa; border-left: 4px solid #dc3545 !important;">
+    <div class="bg-danger bg-opacity-10 rounded-circle p-2">
+        <i class="ti ti-circle-x fs-4 text-danger"></i>
+    </div>
+    <div class="flex-grow-1">
+        <div class="fw-bold mb-0 text-danger">Transaksi Dibatalkan (Disetujui)</div>
+        <p class="mb-0 small text-muted">
+            Dihapus oleh: <strong>{{ $transaction->deleteRequestedBy->name ?? '-' }}</strong>. Alasan: {{ $transaction->delete_reason }}
+            <br>Disetujui oleh: <strong>{{ $transaction->deleteApprovedBy->name ?? '-' }}</strong> pada {{ $transaction->delete_approved_at ? $transaction->delete_approved_at->format('d M Y, H:i') : '-' }}.
+        </p>
+    </div>
 </div>
 @endif
 
@@ -139,7 +175,7 @@
     <div class="col-12 col-lg-8">
 
         {{-- Bayar Sekarang (Midtrans pending) --}}
-        @if($transaction->payment_method === 'midtrans' && $transaction->payment_status === 'pending' && $transaction->midtrans_snap_token)
+        @if($transaction->payment_method === 'midtrans' && $transaction->payment_status === 'pending' && $transaction->midtrans_snap_token && !in_array($transaction->order_status, ['cancelled', 'cancel_requested']))
         <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
             <div style="height:3px;background:linear-gradient(90deg,var(--bs-primary),#60a5fa);"></div>
             <div class="card-body p-4 d-flex align-items-center justify-content-between gap-3 flex-wrap">
@@ -333,6 +369,14 @@
                             </div>
                         </div>
                     </div>
+                    @if($transaction->pickup_address)
+                    <div class="col-12">
+                        <div class="rounded-3 p-3" style="background:#fff4e6;border:1px solid #ffd8a8;">
+                            <div class="text-warning-emphasis small fw-bold mb-1"><i class="ti ti-map-pin me-1"></i>Alamat Penjemputan (Pesan Online)</div>
+                            <div class="fw-medium text-dark">{{ $transaction->pickup_address }}</div>
+                        </div>
+                    </div>
+                    @endif
                 </div>
 
                 {{-- Edit Mode --}}
@@ -557,15 +601,15 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // ── Setujui Pembatalan ────────────────────────────────────
+    // ── Setujui Penghapusan ───────────────────────────────────
     document.getElementById('btnApproveCancel')?.addEventListener('click', function () {
         Swal.fire({
-            title: 'Setujui Pembatalan?',
-            html: `Pesanan <b>{{ $transaction->invoice_number }}</b> akan dibatalkan secara permanen.`,
+            title: 'Setujui Penghapusan?',
+            html: `Pesanan <b>{{ $transaction->invoice_number }}</b> akan dibatalkan secara permanen berdasarkan permohonan.`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#dc3545',
-            confirmButtonText: 'Ya, Batalkan',
+            confirmButtonText: 'Ya, Setujui',
             cancelButtonText: 'Batal',
             reverseButtons: true,
         }).then(async (result) => {
@@ -583,6 +627,36 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 } catch (e) {
                     Swal.fire('Error', 'Gagal memproses pengajuan.', 'error');
+                }
+            }
+        });
+    });
+
+    // ── Tolak Penghapusan ─────────────────────────────────────
+    document.getElementById('btnRejectDelete')?.addEventListener('click', function () {
+        Swal.fire({
+            title: 'Tolak Penghapusan?',
+            html: `Pengajuan penghapusan untuk <b>{{ $transaction->invoice_number }}</b> akan ditolak dan status dikembalikan ke semula.`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Ya, Tolak',
+            cancelButtonText: 'Batal',
+            reverseButtons: true,
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    const res = await fetch(this.dataset.url, {
+                        method: 'POST',
+                        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        Swal.fire('Berhasil!', data.message, 'success').then(() => window.location.reload());
+                    } else {
+                        Swal.fire('Gagal', data.error, 'error');
+                    }
+                } catch (e) {
+                    Swal.fire('Error', 'Gagal memproses penolakan.', 'error');
                 }
             }
         });
