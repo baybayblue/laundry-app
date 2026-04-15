@@ -56,7 +56,7 @@ class UserController extends Controller
             'role'     => 'required|in:admin,owner,employee',
             'phone'    => 'nullable|string|max:20',
             'address'  => 'nullable|string|max:255',
-            'gender'   => 'nullable|in:male,female',
+            'gender'   => 'nullable|in:L,P',
             'position' => 'nullable|string|max:100',
             'photo'    => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
@@ -96,7 +96,7 @@ class UserController extends Controller
             'role'     => 'required|in:admin,owner,employee',
             'phone'    => 'nullable|string|max:20',
             'address'  => 'nullable|string|max:255',
-            'gender'   => 'nullable|in:male,female',
+            'gender'   => 'nullable|in:L,P',
             'position' => 'nullable|string|max:100',
             'photo'    => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);

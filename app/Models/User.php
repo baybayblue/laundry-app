@@ -83,6 +83,15 @@ class User extends Authenticatable
         };
     }
 
+    public function getGenderLabelAttribute(): string
+    {
+        return match($this->gender) {
+            'L' => 'Laki-laki',
+            'P' => 'Perempuan',
+            default => '–',
+        };
+    }
+
     public function attendances()
     {
         return $this->hasMany(Attendance::class);
