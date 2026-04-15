@@ -322,7 +322,7 @@ class TransactionController extends Controller
     public function updateStatus(Request $request, Transaction $transaction)
     {
         // Ownership check
-        if ($transaction->created_by !== Auth::id()) {
+        if ($transaction->created_by != Auth::id()) {
             return response()->json(['error' => 'Anda tidak memiliki akses ke transaksi ini.'], 403);
         }
 
@@ -349,7 +349,7 @@ class TransactionController extends Controller
     public function show(Transaction $transaction)
     {
         // Employee can only view their own transactions
-        if ($transaction->created_by !== Auth::id()) {
+        if ($transaction->created_by != Auth::id()) {
             abort(403, 'Anda tidak bisa mengakses transaksi ini.');
         }
 
@@ -361,7 +361,7 @@ class TransactionController extends Controller
     public function requestDelete(Request $request, Transaction $transaction)
     {
         // Ownership check
-        if ($transaction->created_by !== Auth::id()) {
+        if ($transaction->created_by != Auth::id()) {
             return response()->json(['error' => 'Anda tidak memiliki akses ke transaksi ini.'], 403);
         }
 
