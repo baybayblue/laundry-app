@@ -206,7 +206,7 @@
                                 @if($user->id !== auth()->id())
                                 <form action="{{ route('admin.users.destroy', $user) }}" method="POST" class="d-inline">
                                     @csrf @method('DELETE')
-                                    <button type="button" class="btn btn-sm btn-icon rounded-circle border text-danger"
+                                    <button type="button" class="btn btn-sm btn-icon btn-delete rounded-circle border text-danger"
                                         style="width:34px; height:34px; display:inline-flex; align-items:center; justify-content:center;"
                                         data-name="{{ $user->name }}" title="Hapus">
                                         <i class="ti ti-trash fs-5"></i>
