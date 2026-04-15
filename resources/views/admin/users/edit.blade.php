@@ -101,8 +101,8 @@
                             <label class="form-label fw-medium small">Jenis Kelamin</label>
                             <select name="gender" class="form-select">
                                 <option value="">– Pilih –</option>
-                                <option value="male"   {{ old('gender', $user->gender)==='male'   ? 'selected' : '' }}>Laki-laki</option>
-                                <option value="female" {{ old('gender', $user->gender)==='female' ? 'selected' : '' }}>Perempuan</option>
+                                <option value="L" {{ old('gender', $user->gender)==='L' ? 'selected' : '' }}>Laki-laki</option>
+                                <option value="P" {{ old('gender', $user->gender)==='P' ? 'selected' : '' }}>Perempuan</option>
                             </select>
                         </div>
                         <div class="col-12">
