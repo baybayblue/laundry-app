@@ -29,7 +29,7 @@ class TransactionController extends Controller
     public function show(Transaction $transaction)
     {
         // Ensure this transaction belongs to the logged-in customer
-        if ($transaction->customer_id !== Auth::guard('customer')->id()) {
+        if ($transaction->customer_id != Auth::guard('customer')->id()) {
             abort(403);
         }
 
@@ -40,7 +40,7 @@ class TransactionController extends Controller
     public function checkPaymentStatus(Transaction $transaction)
     {
         // Ownership check
-        if ($transaction->customer_id !== Auth::guard('customer')->id()) {
+        if ($transaction->customer_id != Auth::guard('customer')->id()) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
@@ -99,7 +99,7 @@ class TransactionController extends Controller
     // ── GET SNAP TOKEN (On-demand) ─────────────────────────────
     public function getSnapToken(Transaction $transaction)
     {
-        if ($transaction->customer_id !== Auth::guard('customer')->id()) {
+        if ($transaction->customer_id != Auth::guard('customer')->id()) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
@@ -132,7 +132,7 @@ class TransactionController extends Controller
     // ── REQUEST CANCELLATION ──────────────────────────────────
     public function requestCancel(Transaction $transaction)
     {
-        if ($transaction->customer_id !== Auth::guard('customer')->id()) {
+        if ($transaction->customer_id != Auth::guard('customer')->id()) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
@@ -216,7 +216,7 @@ class TransactionController extends Controller
     // ── INVOICE (print) ────────────────────────────────────────
     public function invoice(Transaction $transaction)
     {
-        if ($transaction->customer_id !== Auth::guard('customer')->id()) {
+        if ($transaction->customer_id != Auth::guard('customer')->id()) {
             abort(403);
         }
 

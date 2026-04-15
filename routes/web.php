@@ -56,33 +56,33 @@ Route::middleware('auth')->group(function () {
     });
 
     // ── ADMIN + OWNER routes (monitoring / read) ─────────────
-    Route::middleware('role:admin,owner')->prefix('admin')->name('admin.')->group(function () {
+    Route::middleware('role:admin,owner')->prefix('admin')->group(function () {
         // Transactions (read-only + payment actions)
-        Route::get('transactions', [\App\Http\Controllers\Admin\TransactionController::class, 'index'])->name('transactions.index');
-        Route::get('transactions/{transaction}', [\App\Http\Controllers\Admin\TransactionController::class, 'show'])->name('transactions.show');
-        Route::get('transactions/{transaction}/invoice', [\App\Http\Controllers\Admin\TransactionController::class, 'invoice'])->name('transactions.invoice');
-        Route::get('transactions/{transaction}/check-payment', [\App\Http\Controllers\Admin\TransactionController::class, 'checkPaymentStatus'])->name('transactions.check-payment');
-        Route::get('transactions/{transaction}/snap-token', [\App\Http\Controllers\Admin\TransactionController::class, 'getSnapToken'])->name('transactions.snap-token');
-        Route::post('transactions/{transaction}/approve-cancel', [\App\Http\Controllers\Admin\TransactionController::class, 'approveCancel'])->name('transactions.approve-cancel');
-        Route::post('transactions/{transaction}/reject-delete', [\App\Http\Controllers\Admin\TransactionController::class, 'rejectDelete'])->name('transactions.reject-delete');
-        Route::get('transactions-export', [\App\Http\Controllers\Admin\TransactionController::class, 'export'])->name('transactions.export');
+        Route::get('transactions', [\App\Http\Controllers\Admin\TransactionController::class, 'index'])->name('admin.transactions.index');
+        Route::get('transactions/{transaction}', [\App\Http\Controllers\Admin\TransactionController::class, 'show'])->name('admin.transactions.show');
+        Route::get('transactions/{transaction}/invoice', [\App\Http\Controllers\Admin\TransactionController::class, 'invoice'])->name('admin.transactions.invoice');
+        Route::get('transactions/{transaction}/check-payment', [\App\Http\Controllers\Admin\TransactionController::class, 'checkPaymentStatus'])->name('admin.transactions.check-payment');
+        Route::get('transactions/{transaction}/snap-token', [\App\Http\Controllers\Admin\TransactionController::class, 'getSnapToken'])->name('admin.transactions.snap-token');
+        Route::post('transactions/{transaction}/approve-cancel', [\App\Http\Controllers\Admin\TransactionController::class, 'approveCancel'])->name('admin.transactions.approve-cancel');
+        Route::post('transactions/{transaction}/reject-delete', [\App\Http\Controllers\Admin\TransactionController::class, 'rejectDelete'])->name('admin.transactions.reject-delete');
+        Route::get('transactions-export', [\App\Http\Controllers\Admin\TransactionController::class, 'export'])->name('admin.transactions.export');
 
         // Laporan Keuangan
-        Route::get('laporan-keuangan', [\App\Http\Controllers\Admin\LaporanKeuanganController::class, 'index'])->name('laporan-keuangan.index');
-        Route::get('laporan-keuangan/print', [\App\Http\Controllers\Admin\LaporanKeuanganController::class, 'print'])->name('laporan-keuangan.print');
-        Route::get('laporan-keuangan/export', [\App\Http\Controllers\Admin\LaporanKeuanganController::class, 'export'])->name('laporan-keuangan.export');
+        Route::get('laporan-keuangan', [\App\Http\Controllers\Admin\LaporanKeuanganController::class, 'index'])->name('admin.laporan-keuangan.index');
+        Route::get('laporan-keuangan/print', [\App\Http\Controllers\Admin\LaporanKeuanganController::class, 'print'])->name('admin.laporan-keuangan.print');
+        Route::get('laporan-keuangan/export', [\App\Http\Controllers\Admin\LaporanKeuanganController::class, 'export'])->name('admin.laporan-keuangan.export');
 
         // Attendance monitoring
-        Route::get('attendances', [\App\Http\Controllers\Admin\AttendanceController::class, 'index'])->name('attendances.index');
-        Route::get('attendances/report', [\App\Http\Controllers\Admin\AttendanceController::class, 'report'])->name('attendances.report');
-        Route::get('attendances/clock', [\App\Http\Controllers\Admin\AttendanceController::class, 'clockPage'])->name('attendances.clock');
-        Route::post('attendances/clock-in', [\App\Http\Controllers\Admin\AttendanceController::class, 'clockIn'])->name('attendances.clock-in');
-        Route::post('attendances/clock-out', [\App\Http\Controllers\Admin\AttendanceController::class, 'clockOut'])->name('attendances.clock-out');
+        Route::get('attendances', [\App\Http\Controllers\Admin\AttendanceController::class, 'index'])->name('admin.attendances.index');
+        Route::get('attendances/report', [\App\Http\Controllers\Admin\AttendanceController::class, 'report'])->name('admin.attendances.report');
+        Route::get('attendances/clock', [\App\Http\Controllers\Admin\AttendanceController::class, 'clockPage'])->name('admin.attendances.clock');
+        Route::post('attendances/clock-in', [\App\Http\Controllers\Admin\AttendanceController::class, 'clockIn'])->name('admin.attendances.clock-in');
+        Route::post('attendances/clock-out', [\App\Http\Controllers\Admin\AttendanceController::class, 'clockOut'])->name('admin.attendances.clock-out');
 
         // Leave Requests Management
-        Route::get('leave-requests', [\App\Http\Controllers\Admin\LeaveRequestController::class, 'index'])->name('leave-requests.index');
-        Route::post('leave-requests/{leaveRequest}/approve', [\App\Http\Controllers\Admin\LeaveRequestController::class, 'approve'])->name('leave-requests.approve');
-        Route::post('leave-requests/{leaveRequest}/reject', [\App\Http\Controllers\Admin\LeaveRequestController::class, 'reject'])->name('leave-requests.reject');
+        Route::get('leave-requests', [\App\Http\Controllers\Admin\LeaveRequestController::class, 'index'])->name('admin.leave-requests.index');
+        Route::post('leave-requests/{leaveRequest}/approve', [\App\Http\Controllers\Admin\LeaveRequestController::class, 'approve'])->name('admin.leave-requests.approve');
+        Route::post('leave-requests/{leaveRequest}/reject', [\App\Http\Controllers\Admin\LeaveRequestController::class, 'reject'])->name('admin.leave-requests.reject');
     });
 
     // Employee routes
